@@ -9,7 +9,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Watchlist
+from models import db, User, Watchlist, Post
 import random
 import smtplib
 from email.message import EmailMessage
@@ -86,13 +86,19 @@ def change_password():
 
     return jsonify(pw_code)
 
+@app.route('/watchlist/<userId>')
+def getUserWatchList(userId):
+    user = User.query.filter_by(id=userId).first()
+    all_watchlist = list(map(lambda watchlist: watchlist.serialize(), user.watchlist))
+
+    return jsonify(all_watchlist),200
+
 @app.route('/watchlist-delete', methods=['DELETE'])
 def deleteStock():
-    request_body = request.get_json(force=True)
-    user_id = request_body["user_id"]
-    stock = request_body["stock"]
+    user_id = request.args.get('userid')
+    stock = request.args.get('stock')
 
-    targetStock = Watchlist.query.filter_by(user_id=user_id, stock=stock).first()
+    targetStock = Watchlist.query.filter_by(user_id=user_id, stock=stock.upper()).first()
 
     if targetStock:
         db.session.delete(targetStock)
@@ -124,6 +130,34 @@ def getAllWatchlists():
     readWatchlists = list(map(lambda watchlist: watchlist.serialize(), watchlists))
 
     return jsonify(readWatchlists), 200
+
+@app.route("/user-profile", methods=["GET"])
+def profileInfo():
+    user_name = request.args.get('username')
+
+    if user_name:
+        user = User.query.filter_by(user_name = user_name).first()
+        user_info = user.serialize()
+        print(user)
+        if user:
+            return jsonify(user_info), 200
+        else:
+            return jsonify("user does not exist!"), 400
+
+@app.route("/create-post", methods=["POST"])
+def createPost():
+    body_request = request.get_json(force=True)
+
+    user_id = body_request["user_id"]
+    header = body_request["header"]
+    body = body_request["body"]
+
+    post = Post(user_id=user_id, header=header, body=body)
+
+    db.session.add(post)
+    db.session.commit()
+
+    return jsonify("Post successfully added"), 200
 
 
 
