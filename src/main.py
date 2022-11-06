@@ -50,7 +50,7 @@ def create_user():
     db.session.add(newUser)
     db.session.commit()
 
-    return jsonify("User created"), 200
+    return jsonify("User created | test"), 200
 
 @app.route('/reset-password', methods=['POST'])
 def send_email():
